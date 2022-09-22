@@ -28,7 +28,10 @@ pf.net_incoming[pf.NET_PRINT] = function(length)
 			if length < 0 then
 				break
 			end
-			t[i] = net.readColor(false)
+			local r = net.readUInt(8)
+			local g = net.readUInt(8)
+			local b = net.readUInt(8)
+			t[i] = Color(r, g, b)
 		else
 			local s = net.readString()
 			length = length-(#s+1)*8

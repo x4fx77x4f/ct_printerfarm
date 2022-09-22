@@ -14,7 +14,9 @@ function pf.tprint(target, ...)
 				break
 			elseif type(v) == 'Color' then
 				net.writeBit(1)
-				net.writeColor(v, false)
+				net.writeUInt(v[1], 8)
+				net.writeUInt(v[2], 8)
+				net.writeUInt(v[3], 8)
 			else
 				net.writeBit(0)
 				net.writeString(v)
