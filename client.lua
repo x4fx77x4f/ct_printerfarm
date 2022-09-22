@@ -17,13 +17,9 @@ else
 	end
 end
 pf.net_incoming[pf.NET_PRINT] = function(length)
-	local t = {}
-	length = length-8
-	if length < 0 then
-		return
-	end
-	local j = net.readUInt(8)
-	for i=1, j do
+	local t, i = {}, 0
+	while true do
+		i = i+1
 		length = length-1
 		if length < 0 then
 			break
@@ -35,7 +31,7 @@ pf.net_incoming[pf.NET_PRINT] = function(length)
 			t[i] = net.readColor(false)
 		else
 			local s = net.readString()
-			length = length-#s-1
+			length = length-(#s+1)*8
 			t[i] = s
 		end
 	end
