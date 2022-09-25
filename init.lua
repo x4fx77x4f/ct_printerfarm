@@ -33,16 +33,6 @@ function pf.print(...)
 	return pf.tprint(nil, ...)
 end
 
-hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
-	pf.tprintf(owner(), "moneyPrinterCatchFire: %s", tostring(printer))
-end)
-hook.add('moneyPrinterPrinted', pf.ID_HOOK, function(printer, bag)
-	pf.tprintf(owner(), "moneyPrinterPrinted: %s, %s", tostring(printer), tostring(bag))
-end)
-hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
-	pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
-end)
-
 pf.command_prefix = string.format("$%d ", chip():entIndex())
 pf.commands = {}
 pf.command_help = {}
@@ -129,7 +119,8 @@ pf.commands.aabb_list = function(sender, command, parameters, is_team)
 		return true
 	end
 	for i=1, #aabbs do
-		local mins, maxs = unpack(aabbs[i])
+		local aabb = aabbs[i]
+		local mins, maxs = aabb[1], aabb[2]
 		pf.tprintf(sender, "%d: Vector(%s, %s, %s), Vector(%s, %s, %s)", i, mins[1], mins[2], mins[3], maxs[1], maxs[2], maxs[3])
 	end
 	return true
@@ -212,4 +203,130 @@ hook.add('ClientInitialized', pf.ID_HOOK, function(ply)
 		return
 	end
 	pf.tprintf(ply, "Run \"%shelp\" for commands.", pf.command_prefix)
+end)
+
+function pf.is_entity_in_aabb(printer)
+	local pos = printer:obbCenterW()
+	local posx, posy, posz = pos[1], pos[2], pos[3]
+	local aabbs = pf.aabbs
+	for i=1, #aabbs do
+		local aabb = aabbs[i]
+		local mins, maxs = aabb[1], aabb[2]
+		local minx, miny, minz = mins[1], mins[2], mins[3]
+		local maxx, maxy, maxz = maxs[1], maxs[2], maxs[3]
+		if (
+			posx >= minx and posx < maxx
+			and posy >= miny and posy < maxy
+			and posz >= minz and posz < maxz
+		) then
+			return true, i
+		end
+	end
+	return false
+end
+function pf.extinguish_update()
+	local extinguishing = pf.extinguishing
+	net.start(pf.ID_NET)
+		net.writeUInt(extinguishing, pf.NET_BITS)
+		if extinguishing == pf.NET_EXTINGUISHING_PRE then
+			net.writeEntity(pf.extinguishee)
+		end
+	net.send(pf.extinguisher)
+end
+pf.seat_pos = Vector(0, 0, 0)
+pf.seat = prop.createSeat(pf.seat_pos, Angle(), 'models/hunter/plates/plate.mdl', true)
+pf.seat:setNoDraw(false)
+pf.seat:setSolid(false)
+pf.seat:setColor(Color(0, 0, 0, 0))
+pf.seat:setDrawShadow(false)
+function pf.extinguish_teleport(sender, pos, target)
+	if not pcall(sender.setPos, sender, pos) then
+		local seat = pf.seat
+		local eyeangles_old = sender:getEyeAngles()
+		seat:setPos(pos)
+		seat:use()
+		seat:ejectDriver()
+		seat:setPos(pf.seat_pos)
+		pcall(sender.setEyeAngles, sender, eyeangles_old)
+	end
+end
+function pf.extinguish(extinguishee, extinguisher)
+	if extinguisher == nil then
+		extinguisher = owner()
+	end
+	pf.extinguisher = extinguisher
+	pf.extinguishee = extinguishee
+	pf.extinguishing = pf.NET_EXTINGUISHING_PRE
+	pf.extinguish_update()
+	timer.simple(2, function()
+		if not isValid(extinguisher) or not isValid(extinguishee) then
+			return
+		end
+		pf.extinguishing = pf.NET_EXTINGUISHING_TELEPORT
+		pf.extinguish_update()
+		local pos_old = extinguisher:getPos()
+		pf.extinguish_teleport(extinguisher, extinguishee:getPos())
+		timer.simple(1, function()
+			if not isValid(extinguisher) or not isValid(extinguishee) then
+				return
+			end
+			pf.extinguishing = pf.NET_EXTINGUISHING_TELEPORTPOST
+			pf.extinguish_update()
+			timer.simple(1, function()
+				if not isValid(extinguisher) or not isValid(extinguishee) then
+					return
+				end
+				pf.extinguishing = pf.NET_EXTINGUISHING_POCKET
+				pf.extinguish_update()
+				timer.simple(1, function()
+					if not isValid(extinguisher) then
+						return
+					end
+					pf.extinguishing = pf.NET_EXTINGUISHING_UNPOCKET
+					pf.extinguish_update()
+					timer.simple(1, function()
+						if not isValid(extinguisher) then
+							return
+						end
+						pf.extinguishing = pf.NET_EXTINGUISHING_NULL
+						pf.extinguish_update()
+						pf.extinguish_teleport(extinguisher, pos_old)
+					end)
+				end)
+			end)
+		end)
+	end)
+end
+pf.commands.extinguish = function(sender, command, parameters, is_team)
+	if sender ~= owner() then
+		return false, "Not authorized."
+	end
+	local target = tonumber(parameters)
+	if target == nil then
+		return false, "Malformed parameters."
+	end
+	target = entity(target)
+	if not isValid(target) then
+		return false, "Invalid entity."
+	end
+	pf.extinguish(target, sender)
+end
+pf.command_help.extinguish = "Manually trigger an extinguishing of a printer."
+hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
+	if not pf.is_entity_in_aabb(printer) then
+		return
+	end
+	pf.tprintf(owner(), "moneyPrinterCatchFire: %s", tostring(printer))
+end)
+hook.add('moneyPrinterPrinted', pf.ID_HOOK, function(printer, bag)
+	if not pf.is_entity_in_aabb(printer) then
+		return
+	end
+	pf.tprintf(owner(), "moneyPrinterPrinted: %s, %s", tostring(printer), tostring(bag))
+end)
+hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
+	if not pf.is_entity_in_aabb(printer) then
+		return
+	end
+	pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
 end)
