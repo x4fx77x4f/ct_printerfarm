@@ -358,7 +358,8 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 	table.insert(pf.collection_queue, printer)
 end)
 pf.should_collect_every_tick = false
-hook.add('tick', pf.ID_HOOK, function()
+setSoftQuota(0.4)
+function pf.collect_tick()
 	if pf.should_collect_every_tick then
 		local printers = find.byClass('scriptis_printer')
 		for i=1, #printers do
@@ -376,6 +377,19 @@ hook.add('tick', pf.ID_HOOK, function()
 			pf.collect(printer)
 		else
 			queue[i] = nil
+		end
+	end
+end
+hook.add('tick', pf.ID_HOOK, function()
+	local success, err = pcall(pf.collect_tick)
+	if not success then
+		if istable(err) then
+			err = rawget(err, 'message')
+		end
+		err = tostring(err)
+		local softquota = "CPU Quota warning."
+		if string.sub(err, -#softquota) ~= softquota then
+			error(err)
 		end
 	end
 end)
