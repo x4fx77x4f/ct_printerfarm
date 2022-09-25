@@ -1,6 +1,9 @@
 # Canadian's Turf printer farm
 Mostly automatic money printer extinguisher for [Canadian's Turf](https://steamcommunity.com/groups/canadiansturf).
 
+## Disclaimer
+**This software is provided as is with any faults it may have.** In particular, it frequently fails to actually pocket the printers, resulting in them not being put out and potentially exploding.
+
 ## Usage
 1. `git clone https://github.com/x4fx77x4f/ct_printerfarm.git ~/.steam/steam/steamapps/common/GarrysMod/garrysmod/data/starfall/ct_printerfarm`
 2. Flash `/ct_printerfarm/init.lua` to a chip.
