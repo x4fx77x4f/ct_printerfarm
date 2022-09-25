@@ -17,9 +17,11 @@ function pf.tprint(target, ...)
 				net.writeUInt(v[1], 8)
 				net.writeUInt(v[2], 8)
 				net.writeUInt(v[3], 8)
-			else
+			elseif isstring(v) then
 				net.writeBit(0)
 				net.writeString(v)
+			else
+				error(string.format("bad argument #%d to '%s' (Color or string expected, got %s)", i+1, debug.getinfo(1, 'n').name, type(v)), 2)
 			end
 		end
 	net.send(target)
@@ -29,14 +31,6 @@ function pf.tprintf(target, ...)
 end
 function pf.print(...)
 	return pf.tprint(nil, ...)
-end
-
-pf.whitelist = {}
-local printers = find.byClass('scriptis_printer')
-for i=1, #printers do
-	pf.whitelist[printers[i]] = {
-		owner = owner(),
-	}
 end
 
 hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
@@ -69,7 +63,7 @@ hook.add('PlayerSay', pf.ID_HOOK, function(sender, message, is_team)
 				retval = rawget(retval, 'message')
 			end
 			retval = tostring(retval)
-			pf.tprintf(sender, retval)
+			pf.tprint(sender, retval)
 		end
 		return ""
 	end
@@ -95,6 +89,7 @@ pf.commands.help = function(sender, command, parameters, is_team)
 	return true
 end
 pf.command_help.help = "Get documentation for command, or list all commands if none specified."
+
 pf.commands.l = function(sender, command, parameters, is_team)
 	if sender ~= owner() then
 		return false, "Not authorized."
@@ -123,4 +118,98 @@ pf.commands.l = function(sender, command, parameters, is_team)
 end
 pf.command_help.l = "Run Lua code."
 
-pf.printf("Run \"%shelp\" for commands.", pf.command_prefix)
+pf.aabbs = {}
+pf.commands.aabb_list = function(sender, command, parameters, is_team)
+	if sender ~= owner() then
+		return false, "Not authorized."
+	end
+	local aabbs = pf.aabbs
+	if #aabbs == 0 then
+		pf.tprint(sender, "No AABBs.")
+		return true
+	end
+	for i=1, #aabbs do
+		local mins, maxs = unpack(aabbs[i])
+		pf.tprintf(sender, "%d: Vector(%s, %s, %s), Vector(%s, %s, %s)", i, mins[1], mins[2], mins[3], maxs[1], maxs[2], maxs[3])
+	end
+	return true
+end
+pf.command_help.aabb_list = "List AABBs."
+pf.commands.aabb_clear = function(sender, command, parameters, is_team)
+	if sender ~= owner() then
+		return false, "Not authorized."
+	end
+	pf.aabbs = {}
+	pf.tprint(sender, "Cleared.")
+	return true
+end
+pf.command_help.aabb_clear = "Clear list of AABBs."
+local function parse_vector(parameter)
+	if string.sub(parameter, -1, -1) == ')' then
+		if string.sub(parameter, 1, 7) == 'Vector(' then
+			parameter = string.sub(parameter, 8, -2)
+		elseif string.sub(parameter, 1, 1) == '(' then
+			parameter = string.sub(parameter, 2, -2)
+		end
+	end
+	local first_comma = string.find(parameter, ',', 1, true)
+	if first_comma == nil then
+		return nil
+	end
+	local second_comma = string.find(parameter, ',', first_comma+1, true)
+	if second_comma == nil then
+		return nil
+	end
+	local x = tonumber(string.sub(parameter, 1, first_comma-1))
+	local y = tonumber(string.sub(parameter, first_comma+1, second_comma-1))
+	local z = tonumber(string.sub(parameter, second_comma+1))
+	if x == nil or y == nil or z == nil then
+		return nil
+	end
+	return Vector(x, y, z)
+end
+pf.commands.aabb_add = function(sender, command, parameters, is_team)
+	if sender ~= owner() then
+		return false, "Not authorized."
+	end
+	local first_space = string.find(parameters, ' ', 1, true)
+	if first_space == nil then
+		return false, "Malformed parameters."
+	end
+	local mins = parse_vector(string.sub(parameters, 1, first_space-1))
+	local maxs = parse_vector(string.sub(parameters, first_space+1))
+	if mins == nil or maxs == nil then
+		return false, "Malformed parameters."
+	end
+	local minx, miny, minz = math.min(mins[1], maxs[1]), math.min(mins[2], maxs[2]), math.min(mins[3], maxs[3])
+	local maxx, maxy, maxz = math.max(mins[1], maxs[1]), math.max(mins[2], maxs[2]), math.max(mins[3], maxs[3])
+	mins, maxs = Vector(minx, miny, minz), Vector(maxx, maxy, maxz)
+	table.insert(pf.aabbs, {mins, maxs})
+	pf.tprint(sender, "Added.")
+	return true
+end
+pf.command_help.aabb_add = "Add AABB to list."
+pf.commands.aabb_remove = function(sender, command, parameters, is_team)
+	if sender ~= owner() then
+		return false, "Not authorized."
+	end
+	local i = tonumber(parameters)
+	if i == nil then
+		return false, "Malformed parameters."
+	end
+	local aabbs = pf.aabbs
+	if aabbs[i] == nil then
+		return false, "No such AABB."
+	end
+	table.remove(aabbs, i)
+	pf.tprint(sender, "Removed.")
+	return true
+end
+pf.command_help.aabb_remove = "Remove AABB from list."
+
+hook.add('ClientInitialized', pf.ID_HOOK, function(ply)
+	if ply ~= owner() then
+		return
+	end
+	pf.tprintf(ply, "Run \"%shelp\" for commands.", pf.command_prefix)
+end)

@@ -28,9 +28,6 @@ pf.ID_HOOK = ''
 pf.ID_TIMER = ''
 pf.enum('NET', {
 	'PRINT', -- CB: Display message in chat
-	'WHITELIST_CLEAR', -- SB/CB: Clear printer list
-	'WHITELIST_ADD', -- SB/CB: Add entity to printer list
-	'WHITELIST_REMOVE', -- SB/CB: Remove entity from printer list
 })
 pf.net_incoming = {}
 net.receive(pf.ID_NET, function(length, sender)
@@ -50,5 +47,14 @@ net.receive(pf.ID_NET, function(length, sender)
 		length = packet_handler(length, sender)
 	until length == nil
 end)
+
+pf.enum('EXTINGUISHING', {
+	'NULL',
+	'PRE',
+	'PRETELEPORT',
+	'POCKET',
+	'UNPOCKET',
+})
+pf.extinguishing = pf.EXTINGUISHING_NULL
 
 return pf

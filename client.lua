@@ -3,6 +3,8 @@
 --@include ./shared.lua
 local pf = dofile('./shared.lua')
 
+setName(sfc3.output_prefix..chip():getChipName())
+
 if player() == owner() then
 	function pf.print(...)
 		return print(pf.output_prefix_color, pf.output_prefix, pf.output_color, ...)
@@ -48,7 +50,7 @@ pf.color_fg_error = Color(255, 127, 127)
 pf.color_fg_warning = Color(255, 255, 127)
 pf.color_fg_success = Color(127, 255, 127)
 hook.add('drawhud', pf.ID_HOOK, function()
-	if pf.extinguishing ~= nil then
+	if pf.extinguishing ~= pf.EXTINGUISHING_NULL then
 		local p = 8
 		local sw, sh = render.getResolution()
 		local w, h = 640, 240
