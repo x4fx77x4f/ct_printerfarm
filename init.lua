@@ -375,6 +375,7 @@ function pf.collect_tick()
 		local printer = queue[i]
 		if isValid(printer) then
 			pf.collect(printer)
+			queue[i] = nil
 		else
 			queue[i] = nil
 		end
