@@ -72,6 +72,7 @@ pf.bitfield('READY', {
 	'CONCMD',
 	'INPUTEMULATE',
 	'SETEYEANGLES',
+	'USER',
 })
 
 return pf

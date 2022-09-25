@@ -317,7 +317,28 @@ hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
 		return
 	end
 	pf.tprintf(owner(), "moneyPrinterCatchFire: %s", tostring(printer))
+	pf.extinguish(printer, owner())
 end)
+
+wire.adjustPorts({User='entity'}, {Use='number'})
+function pf.collect(printer)
+	local ports = wire.ports
+	local user = ports.User
+	if not isValid(user) then
+		return
+	end
+	local pos_old = user:getPos()
+	local angles_old = user:getAngles()
+	local frozen_old = user:isFrozen()
+	user:setFrozen(true)
+	user:setPos(printer:obbCenterW())
+	user:setAngles(Angle())
+	ports.Use = 1
+	ports.Use = 0
+	user:setPos(pos_old)
+	user:setAngles(angles_old)
+	user:setFrozen(frozen_old)
+end
 hook.add('moneyPrinterPrinted', pf.ID_HOOK, function(printer, bag)
 	if not pf.is_entity_in_aabb(printer) then
 		return
@@ -329,4 +350,18 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 		return
 	end
 	pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
+	pf.collect(printer)
+end)
+pf.should_collect_every_tick = false
+hook.add('tick', pf.ID_HOOK, function()
+	if not pf.should_collect_every_tick then
+		return
+	end
+	local printers = find.byClass('scriptis_printer')
+	for i=1, #printers do
+		local printer = printers[i]
+		if pf.is_entity_in_aabb(printer) then
+			pf.collect(printer)
+		end
+	end
 end)
