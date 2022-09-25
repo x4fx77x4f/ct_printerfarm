@@ -316,7 +316,9 @@ hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
 	if not pf.is_entity_in_aabb(printer) then
 		return
 	end
-	pf.tprintf(owner(), "moneyPrinterCatchFire: %s", tostring(printer))
+	if pf.VERBOSE then
+		pf.tprintf(owner(), "moneyPrinterCatchFire: %s", tostring(printer))
+	end
 	pf.extinguish(printer, owner())
 end)
 
@@ -339,6 +341,7 @@ function pf.collect(printer)
 	user:setAngles(angles_old)
 	user:setFrozen(frozen_old)
 end
+pf.collection_queue = {}
 hook.add('moneyPrinterPrinted', pf.ID_HOOK, function(printer, bag)
 	if not pf.is_entity_in_aabb(printer) then
 		return
@@ -349,19 +352,30 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 	if not pf.is_entity_in_aabb(printer) then
 		return
 	end
-	pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
-	pf.collect(printer)
+	if pf.VERBOSE then
+		pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
+	end
+	table.insert(pf.collection_queue, printer)
 end)
 pf.should_collect_every_tick = false
 hook.add('tick', pf.ID_HOOK, function()
-	if not pf.should_collect_every_tick then
+	if pf.should_collect_every_tick then
+		local printers = find.byClass('scriptis_printer')
+		for i=1, #printers do
+			local printer = printers[i]
+			if pf.is_entity_in_aabb(printer) then
+				pf.collect(printer)
+			end
+		end
 		return
 	end
-	local printers = find.byClass('scriptis_printer')
-	for i=1, #printers do
-		local printer = printers[i]
-		if pf.is_entity_in_aabb(printer) then
+	local queue = pf.collection_queue
+	for i=#queue, 1, -1 do
+		local printer = queue[i]
+		if isValid(printer) then
 			pf.collect(printer)
+		else
+			queue[i] = nil
 		end
 	end
 end)

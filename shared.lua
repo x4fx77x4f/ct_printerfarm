@@ -75,4 +75,6 @@ pf.bitfield('READY', {
 	'USER',
 })
 
+pf.VERBOSE = false
+
 return pf
