@@ -277,7 +277,7 @@ function pf.extinguish(extinguishee, extinguisher)
 			end
 			pf.extinguishing = pf.NET_EXTINGUISHING_TELEPORTPOST
 			pf.extinguish_update()
-			timer.simple(1, function()
+			timer.simple(0.5, function()
 				if not isValid(extinguisher) or not isValid(extinguishee) then
 					return
 				end
@@ -293,9 +293,11 @@ function pf.extinguish(extinguishee, extinguisher)
 						if not isValid(extinguisher) then
 							return
 						end
-						pf.extinguishing = pf.NET_EXTINGUISHING_NULL
-						pf.extinguish_update()
 						pf.extinguish_teleport(extinguisher, pos_old)
+						timer.simple(0.5, function()
+							pf.extinguishing = pf.NET_EXTINGUISHING_NULL
+							pf.extinguish_update()
+						end)
 					end)
 				end)
 			end)
