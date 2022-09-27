@@ -334,6 +334,7 @@ pf.commands.extinguish = function(sender, command, parameters, is_team)
 		return false, "Invalid entity."
 	end
 	table.insert(pf.extinguish_queue, {target, sender})
+	return true
 end
 pf.command_help.extinguish = "Manually trigger an extinguishing of a printer."
 hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
