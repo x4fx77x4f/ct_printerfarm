@@ -84,7 +84,7 @@ pf.commands.l = function(sender, command, parameters, is_team)
 	if sender ~= owner() then
 		return false, "Not authorized."
 	end
-	local func, err = loadstring('local pf, me = ...\n'..parameters, "pf_l")
+	local func, err = loadstring('local pf, me, this, there = ...\n'..parameters, "pf_l")
 	if func ~= nil and type(func) ~= 'function' then
 		func, err = nil, func
 	end
@@ -95,8 +95,9 @@ pf.commands.l = function(sender, command, parameters, is_team)
 		err = tostring(err)
 		return false, "Compilation error: "..err
 	end
+	local trace = sender:getEyeTrace()
 	local success
-	success, err = pcall(func, pf, sender)
+	success, err = pcall(func, pf, sender, trace.Entity, trace.HitPos)
 	if not success then
 		if type(err) == 'table' then
 			err = rawget(err, 'message')
@@ -309,7 +310,7 @@ function pf.extinguish_tick()
 	local queue = pf.extinguish_queue
 	for i=#queue, 1, -1 do
 		local printer, extinguisher = queue[i]
-		if istable(printer) then
+		if type(printer) ~= 'Entity' then
 			printer, extinguisher = printer[1], printer[2]
 		end
 		if isValid(printer) then
@@ -317,6 +318,7 @@ function pf.extinguish_tick()
 			queue[i] = nil
 			break
 		else
+			pf.printf("Invalid printer %q in queue at %d.", tostring(printer), i)
 			queue[i] = nil
 		end
 	end
