@@ -297,6 +297,22 @@ function pf.extinguish(extinguishee, extinguisher)
 		end)
 	end)
 end
+pf.extinguish_queue = {}
+function pf.extinguish_tick()
+	if pf.extinguishing ~= pf.NET_EXTINGUISHING_NULL then
+		return
+	end
+	local queue = pf.extinguish_queue
+	for i=#queue, 1, -1 do
+		local printer = queue[i]
+		if isValid(printer) then
+			pf.extinguish(printer)
+			queue[i] = nil
+		else
+			queue[i] = nil
+		end
+	end
+end
 pf.commands.extinguish = function(sender, command, parameters, is_team)
 	if sender ~= owner() then
 		return false, "Not authorized."
@@ -309,7 +325,7 @@ pf.commands.extinguish = function(sender, command, parameters, is_team)
 	if not isValid(target) then
 		return false, "Invalid entity."
 	end
-	pf.extinguish(target, sender)
+	table.insert(pf.extinguish_queue, {target, sender})
 end
 pf.command_help.extinguish = "Manually trigger an extinguishing of a printer."
 hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
@@ -319,7 +335,7 @@ hook.add('moneyPrinterCatchFire', pf.ID_HOOK, function(printer)
 	if pf.VERBOSE then
 		pf.tprintf(owner(), "moneyPrinterCatchFire: %s", tostring(printer))
 	end
-	pf.extinguish(printer, owner())
+	table.insert(pf.extinguish_queue, printer)
 end)
 
 wire.adjustPorts({User='entity'}, {Use='number'})
@@ -341,7 +357,7 @@ function pf.collect(printer)
 	user:setAngles(angles_old)
 	user:setFrozen(frozen_old)
 end
-pf.collection_queue = {}
+pf.collect_queue = {}
 hook.add('moneyPrinterPrinted', pf.ID_HOOK, function(printer, bag)
 	if not pf.is_entity_in_aabb(printer) then
 		return
@@ -355,7 +371,7 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 	if pf.VERBOSE then
 		pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
 	end
-	table.insert(pf.collection_queue, printer)
+	table.insert(pf.collect_queue, printer)
 end)
 pf.should_collect_every_tick = false
 setSoftQuota(0.4)
@@ -370,7 +386,7 @@ function pf.collect_tick()
 		end
 		return
 	end
-	local queue = pf.collection_queue
+	local queue = pf.collect_queue
 	for i=#queue, 1, -1 do
 		local printer = queue[i]
 		if isValid(printer) then
@@ -381,7 +397,9 @@ function pf.collect_tick()
 		end
 	end
 end
+
 hook.add('tick', pf.ID_HOOK, function()
+	pf.extinguish_tick()
 	local success, err = pcall(pf.collect_tick)
 	if not success then
 		if istable(err) then
