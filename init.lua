@@ -371,6 +371,8 @@ function pf.collect(printer)
 	user:setFrozen(frozen_old)
 end
 pf.collect_queue = {}
+pf.start_time = timer.curtime()
+pf.total_money_collected = 0
 hook.add('moneyPrinterPrinted', pf.ID_HOOK, function(printer, bag)
 	if not pf.is_entity_in_aabb(printer) then
 		return
@@ -384,6 +386,7 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 	if pf.VERBOSE then
 		pf.tprintf(owner(), "moneyPrinterPrintMoney: %s, %s", tostring(printer), darkrp.formatMoney(amount))
 	end
+	pf.total_money_collected = pf.total_money_collected+amount
 	table.insert(pf.collect_queue, printer)
 end)
 pf.should_collect_every_tick = false
@@ -410,6 +413,16 @@ function pf.collect_tick()
 		end
 	end
 end
+pf.commands.stats = function(sender, command, parameters, is_team)
+	if sender ~= owner() then
+		return false, "Not authorized"
+	end
+	local now = timer.curtime()
+	local uptime = now-pf.start_time
+	pf.tprintf(sender, "Collected a total of %s over %s.", darkrp.formatMoney(pf.total_money_collected), string.niceTime(uptime))
+	return true
+end
+pf.command_help.stats = "Display total collected money and uptime."
 
 hook.add('tick', pf.ID_HOOK, function()
 	pf.extinguish_tick()
