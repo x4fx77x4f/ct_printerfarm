@@ -389,24 +389,37 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 	pf.total_money_collected = pf.total_money_collected+amount
 	table.insert(pf.collect_queue, printer)
 end)
-pf.should_collect_every_tick = false
-setSoftQuota(0.4)
+pf.every_tick = false
+pf.is_on_fire = {}
 function pf.collect_tick()
-	if pf.should_collect_every_tick then
+	local collect = pf.collect
+	if pf.every_tick then
+		local is_entity_in_aabb = pf.is_entity_in_aabb
+		local is_on_fire = pf.is_on_fire
 		local printers = find.byClass('scriptis_printer')
 		for i=1, #printers do
 			local printer = printers[i]
-			if pf.is_entity_in_aabb(printer) then
-				pf.collect(printer)
+			if is_entity_in_aabb(printer) then
+				if printer:isOnFire() and not is_on_fire[printer] then
+					is_on_fire[printer] = true
+					table.insert(pf.extinguish_queue, printer)
+				end
+				collect(printer)
+			end
+		end
+		for printer in pairs(is_on_fire) do
+			if not printer:isValid() or not printer:isOnFire() then
+				is_on_fire[printer] = nil
 			end
 		end
 		return
 	end
 	local queue = pf.collect_queue
+	local isValid = isValid
 	for i=#queue, 1, -1 do
 		local printer = queue[i]
 		if isValid(printer) then
-			pf.collect(printer)
+			collect(printer)
 			queue[i] = nil
 		else
 			queue[i] = nil
@@ -426,15 +439,5 @@ pf.command_help.stats = "Display total collected money and uptime."
 
 hook.add('tick', pf.ID_HOOK, function()
 	pf.extinguish_tick()
-	local success, err = pcall(pf.collect_tick)
-	if not success then
-		if istable(err) then
-			err = rawget(err, 'message')
-		end
-		err = tostring(err)
-		local softquota = "CPU Quota warning."
-		if string.sub(err, -#softquota) ~= softquota then
-			error(err)
-		end
-	end
+	pf.collect_tick()
 end)
