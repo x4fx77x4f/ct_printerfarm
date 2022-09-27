@@ -112,7 +112,6 @@ pf.net_incoming[pf.NET_EXTINGUISHING_TELEPORT] = function(length)
 end
 pf.net_incoming[pf.NET_EXTINGUISHING_TELEPORTPOST] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_TELEPORTPOST
-	pf.extinguisher_activeweapon_old = player():getActiveWeapon()
 	input.selectWeapon(player():getWeapon('pocket'))
 	pf.lookat(pf.extinguishee)
 end
