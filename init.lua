@@ -308,10 +308,14 @@ function pf.extinguish_tick()
 	end
 	local queue = pf.extinguish_queue
 	for i=#queue, 1, -1 do
-		local printer = queue[i]
+		local printer, extinguisher = queue[i]
+		if istable(printer) then
+			printer, extinguisher = printer[1], printer[2]
+		end
 		if isValid(printer) then
-			pf.extinguish(printer)
+			pf.extinguish(printer, extinguisher)
 			queue[i] = nil
+			break
 		else
 			queue[i] = nil
 		end
