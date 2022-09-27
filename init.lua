@@ -109,6 +109,10 @@ end
 pf.command_help.l = "Run Lua code."
 
 pf.aabbs = {}
+if game.getMap() == 'rp_construct_b5' then
+	table.insert(pf.aabbs, {Vector(-1352, -2560, 48), Vector(-864, -2368, 176)})
+	table.insert(pf.aabbs, {Vector(-1104, -2368, 48), Vector(-864, -2080, 176)})
+end
 pf.commands.aabb_list = function(sender, command, parameters, is_team)
 	if sender ~= owner() then
 		return false, "Not authorized."
