@@ -87,6 +87,17 @@ function pf.lookat(target)
 	pos:normalize()
 	player():setEyeAngles(pos:getAngle())
 end
+function pf.concmd_think()
+	concmd(pf.concmd_current)
+end
+function pf.concmd(cmd)
+	pf.concmd_current = cmd
+	if cmd ~= nil then
+		hook.add('think', pf.ID_HOOK, pf.concmd_think)
+	else
+		hook.remove('think', pf.ID_HOOK)
+	end
+end
 pf.net_incoming[pf.NET_EXTINGUISHING_PRE] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_PRE
 	pf.extinguishee = net.readEntity()
@@ -97,7 +108,7 @@ pf.net_incoming[pf.NET_EXTINGUISHING_TELEPORT] = function(length)
 	pf.extinguisher_activeweapon_old = player():getActiveWeapon()
 	input.selectWeapon(player():getWeapon('pocket'))
 	pf.lookat(pf.extinguishee)
-	concmd('+duck')
+	pf.concmd('+duck')
 end
 pf.net_incoming[pf.NET_EXTINGUISHING_TELEPORTPOST] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_TELEPORTPOST
@@ -109,24 +120,24 @@ pf.net_incoming[pf.NET_EXTINGUISHING_POCKET] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_POCKET
 	input.selectWeapon(player():getWeapon('pocket'))
 	pf.lookat(pf.extinguishee)
-	concmd('+attack')
+	pf.concmd('+attack')
 	timer.simple(0, function()
-		concmd('-attack')
+		pf.concmd('-attack')
 	end)
 end
 pf.net_incoming[pf.NET_EXTINGUISHING_UNPOCKET] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_UNPOCKET
 	input.selectWeapon(player():getWeapon('pocket'))
-	concmd('+attack2')
+	pf.concmd('+attack2')
 	timer.simple(0, function()
-		concmd('-attack2')
+		pf.concmd('-attack2')
 	end)
 end
 pf.net_incoming[pf.NET_EXTINGUISHING_NULL] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_NULL
 	input.selectWeapon(pf.extinguisher_activeweapon_old)
 	player():setEyeAngles(pf.extinguisher_eyeangles_old)
-	concmd('-duck')
+	pf.concmd('-duck')
 end
 
 function pf.get_ready()
