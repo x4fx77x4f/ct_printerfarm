@@ -389,22 +389,38 @@ hook.add('moneyPrinterPrintMoney', pf.ID_HOOK, function(printer, amount)
 	pf.total_money_collected = pf.total_money_collected+amount
 	table.insert(pf.collect_queue, printer)
 end)
-pf.every_tick = false
+pf.every_tick = true
 pf.is_on_fire = {}
+pf.collect_order = {}
 function pf.collect_tick()
 	local collect = pf.collect
 	if pf.every_tick then
 		local is_entity_in_aabb = pf.is_entity_in_aabb
 		local is_on_fire = pf.is_on_fire
-		local printers = find.byClass('scriptis_printer')
-		for i=1, #printers do
-			local printer = printers[i]
-			if is_entity_in_aabb(printer) then
+		local extinguish_queue = pf.extinguish_queue
+		local collect_order = pf.collect_order
+		local coi = pf.collect_order_i
+		if coi == nil then
+			coi = 1
+		else
+			coi = coi+1
+		end
+		local coj = #collect_order
+		if coi >= coj and coj ~= 0 then
+			coi = (coi-1)%coj+1
+		end
+		local coe = collect_order[coi]
+		pf.collect_order_i = coi
+		for i=1, #collect_order do
+			local printer = collect_order[i]
+			if isValid(printer) then
 				if printer:isOnFire() and not is_on_fire[printer] then
 					is_on_fire[printer] = true
-					table.insert(pf.extinguish_queue, printer)
+					table.insert(extinguish_queue, printer)
 				end
-				collect(printer)
+				if printer == coe then
+					collect(printer)
+				end
 			end
 		end
 		for printer in pairs(is_on_fire) do
@@ -426,6 +442,21 @@ function pf.collect_tick()
 		end
 	end
 end
+timer.create(pf.ID_TIMER, 1, 0, function()
+	if not pf.every_tick then
+		return
+	end
+	local is_entity_in_aabb = pf.is_entity_in_aabb
+	local collect_order = {}
+	local printers = find.byClass('scriptis_printer')
+	for i=1, #printers do
+		local printer = printers[i]
+		if is_entity_in_aabb(printer) then
+			table.insert(collect_order, printer)
+		end
+	end
+	pf.collect_order = collect_order
+end)
 pf.commands.stats = function(sender, command, parameters, is_team)
 	if sender ~= owner() then
 		return false, "Not authorized"
