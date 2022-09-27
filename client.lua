@@ -121,7 +121,7 @@ pf.net_incoming[pf.NET_EXTINGUISHING_POCKET] = function(length)
 	input.selectWeapon(player():getWeapon('pocket'))
 	pf.lookat(pf.extinguishee)
 	pf.concmd('+attack')
-	timer.simple(0, function()
+	timer.simple(0.5, function()
 		pf.concmd('-attack')
 	end)
 end
@@ -129,7 +129,7 @@ pf.net_incoming[pf.NET_EXTINGUISHING_UNPOCKET] = function(length)
 	pf.extinguishing = pf.NET_EXTINGUISHING_UNPOCKET
 	input.selectWeapon(player():getWeapon('pocket'))
 	pf.concmd('+attack2')
-	timer.simple(0, function()
+	timer.simple(0.5, function()
 		pf.concmd('-attack2')
 	end)
 end
@@ -138,6 +138,9 @@ pf.net_incoming[pf.NET_EXTINGUISHING_NULL] = function(length)
 	input.selectWeapon(pf.extinguisher_activeweapon_old)
 	player():setEyeAngles(pf.extinguisher_eyeangles_old)
 	pf.concmd('-duck')
+	timer.simple(0.5, function()
+		pf.concmd()
+	end)
 end
 
 function pf.get_ready()
